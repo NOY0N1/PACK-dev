@@ -38,16 +38,41 @@ scene.add(cube);*/
 const loader = new GLTFLoader();
 const clock = new THREE.Clock();
 let mixer;
+let model; // Store reference to the model
+
+// -------------------- Keyboard Controls --------------------
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+  w: false,
+  a: false,
+  s: false,
+  d: false
+};
+
+window.addEventListener('keydown', (e) => {
+  if (keys.hasOwnProperty(e.key)) {
+    keys[e.key] = true;
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (keys.hasOwnProperty(e.key)) {
+    keys[e.key] = false;
+  }
+});
 
 loader.load(
   './Packman.glb',            // Your model path
   (gltf) => {
-    const model = gltf.scene;
+    model = gltf.scene;
 
     // Position & scale
     model.position.set(0, 0, 0);
     model.scale.set(1, 1, 1); // Adjust if too small or large
-    model.rotation.set(0, (Math.PI / 2), 0); // Rotate 90 degrees on Z-axis
+    model.rotation.set(0, Math.PI / 2, 0); // Facing left
 
     scene.add(model);
 
@@ -66,11 +91,33 @@ loader.load(
 );
 
 // -------------------- Animate Loop --------------------
+const moveSpeed = 0.1;
+
 function animate() {
   requestAnimationFrame(animate);
 
   const delta = clock.getDelta();
   if (mixer) mixer.update(delta);
+
+  // Movement controls
+  if (model) {
+    if (keys.ArrowUp || keys.w) {
+      model.rotation.set(Math.PI, Math.PI, 0);
+      model.position.y -= moveSpeed;
+    }
+    if (keys.ArrowDown || keys.s) {
+      model.position.y += moveSpeed;
+    }
+    if (keys.ArrowLeft || keys.a) {
+      model.rotation.set(0, -Math.PI / 2, 0);
+      model.position.x -= moveSpeed;
+    }
+    if (keys.ArrowRight || keys.d) {
+            model.rotation.set(0, Math.PI / 2, 0);
+
+      model.position.x += moveSpeed;
+    }
+  }
 
   renderer.render(scene, camera);
 }
