@@ -45,8 +45,9 @@ loader.load(
     const model = gltf.scene;
 
     // Position & scale
-    model.position.set(2, 2, 0);
+    model.position.set(0, 0, 0);
     model.scale.set(1, 1, 1); // Adjust if too small or large
+    model.rotation.set(0, (Math.PI / 2), 0); // Rotate 90 degrees on Z-axis
 
     scene.add(model);
 
