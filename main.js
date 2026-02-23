@@ -65,6 +65,32 @@ window.addEventListener('keyup', (e) => {
 });
 
 loader.load(
+  './dot.glb',            // Your model path
+  (gltf) => {
+    model = gltf.scene;
+
+    // Position & scale
+    model.position.set(0, 0, 0);
+    model.scale.set(0.5, 0.5, 0.5); // Adjust if too small or large
+    model.rotation.set(0, Math.PI / 2, 0); // Facing left
+
+    scene.add(model);
+
+    console.log('Model loaded:', gltf.scene);
+    console.log('Animations:', gltf.animations);
+
+    // Guard against missing animations
+    if (gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(model);
+      const action = mixer.clipAction(gltf.animations[0]);
+      action.play();
+    }
+  },
+  undefined,
+  (error) => console.error('Error loading model:', error)
+);
+
+loader.load(
   './Packman.glb',            // Your model path
   (gltf) => {
     model = gltf.scene;
@@ -90,6 +116,8 @@ loader.load(
   (error) => console.error('Error loading model:', error)
 );
 
+
+
 // -------------------- Animate Loop --------------------
 const moveSpeed = 0.1;
 
@@ -102,11 +130,12 @@ function animate() {
   // Movement controls
   if (model) {
     if (keys.ArrowUp || keys.w) {
-      model.rotation.set(Math.PI, Math.PI, 0);
-      model.position.y -= moveSpeed;
+      model.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+      model.position.y += moveSpeed;
     }
     if (keys.ArrowDown || keys.s) {
-      model.position.y += moveSpeed;
+      model.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      model.position.y -= moveSpeed;
     }
     if (keys.ArrowLeft || keys.a) {
       model.rotation.set(0, -Math.PI / 2, 0);
