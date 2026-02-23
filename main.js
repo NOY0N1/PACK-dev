@@ -5,12 +5,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-  75, 
-  window.innerWidth / window.innerHeight, 
-  0.1, 
+  50,
+  window.innerWidth / window.innerHeight,
+  0.1,
   1000
 );
-camera.position.set(0, 1, 5);
+camera.position.set(0, 1, 8);
 camera.lookAt(0, 0, 0);
 
 // -------------------- Renderer --------------------
@@ -38,7 +38,8 @@ scene.add(cube);*/
 const loader = new GLTFLoader();
 const clock = new THREE.Clock();
 let mixer;
-let model; // Store reference to the model
+let pacman; // Store reference to Pac-Man
+let dots = []; // Store references to multiple dots
 
 // -------------------- Keyboard Controls --------------------
 const keys = {
@@ -67,53 +68,56 @@ window.addEventListener('keyup', (e) => {
 loader.load(
   './dot.glb',            // Your model path
   (gltf) => {
-    model = gltf.scene;
+    // Create 10 dots
+    for (let i = 0; i < 10; i++) {
+      const dot = gltf.scene.clone();
 
-    // Position & scale
-    model.position.set(0, 0, 0);
-    model.scale.set(0.5, 0.5, 0.5); // Adjust if too small or large
-    model.rotation.set(0, Math.PI / 2, 0); // Facing left
+      // Position & scale
+      dot.position.set(i * 2 - 9, 2, 0); // Spread dots horizontally, slightly above Pac-Man
+      dot.scale.set(0.5, 0.5, 0.5);
+      dot.rotation.set(0, Math.PI / 2, 0);
 
-    scene.add(model);
+      scene.add(dot);
+      dots.push(dot);
 
-    console.log('Model loaded:', gltf.scene);
-    console.log('Animations:', gltf.animations);
-
-    // Guard against missing animations
-    if (gltf.animations.length > 0) {
-      mixer = new THREE.AnimationMixer(model);
-      const action = mixer.clipAction(gltf.animations[0]);
-      action.play();
+      // Guard against missing animations
+      if (gltf.animations.length > 0) {
+        const dotMixer = new THREE.AnimationMixer(dot);
+        const action = dotMixer.clipAction(gltf.animations[0]);
+        action.play();
+      }
     }
+
+    console.log('10 dots loaded');
   },
   undefined,
-  (error) => console.error('Error loading model:', error)
+  (error) => console.error('Error loading dot:', error)
 );
 
 loader.load(
   './Packman.glb',            // Your model path
   (gltf) => {
-    model = gltf.scene;
+    pacman = gltf.scene;
 
     // Position & scale
-    model.position.set(0, 0, 0);
-    model.scale.set(1, 1, 1); // Adjust if too small or large
-    model.rotation.set(0, Math.PI / 2, 0); // Facing left
+    pacman.position.set(0, 0, 0);
+    pacman.scale.set(1, 1, 1); // Adjust if too small or large
+    pacman.rotation.set(0, Math.PI / 2, 0); // Facing left
 
-    scene.add(model);
+    scene.add(pacman);
 
-    console.log('Model loaded:', gltf.scene);
+    console.log('Pac-Man loaded:', gltf.scene);
     console.log('Animations:', gltf.animations);
 
     // Guard against missing animations
     if (gltf.animations.length > 0) {
-      mixer = new THREE.AnimationMixer(model);
+      mixer = new THREE.AnimationMixer(pacman);
       const action = mixer.clipAction(gltf.animations[0]);
       action.play();
     }
   },
   undefined,
-  (error) => console.error('Error loading model:', error)
+  (error) => console.error('Error loading Pac-Man:', error)
 );
 
 
@@ -128,23 +132,22 @@ function animate() {
   if (mixer) mixer.update(delta);
 
   // Movement controls
-  if (model) {
+  if (pacman) {
     if (keys.ArrowUp || keys.w) {
-      model.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
-      model.position.y += moveSpeed;
+      pacman.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
+      pacman.position.y += moveSpeed;
     }
     if (keys.ArrowDown || keys.s) {
-      model.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-      model.position.y -= moveSpeed;
+      pacman.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      pacman.position.y -= moveSpeed;
     }
     if (keys.ArrowLeft || keys.a) {
-      model.rotation.set(0, -Math.PI / 2, 0);
-      model.position.x -= moveSpeed;
+      pacman.rotation.set(0, -Math.PI / 2, 0);
+      pacman.position.x -= moveSpeed;
     }
     if (keys.ArrowRight || keys.d) {
-            model.rotation.set(0, Math.PI / 2, 0);
-
-      model.position.x += moveSpeed;
+      pacman.rotation.set(0, Math.PI / 2, 0);
+      pacman.position.x += moveSpeed;
     }
   }
 
