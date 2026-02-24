@@ -121,9 +121,9 @@ loader.load(
 );
 
 
-
 // -------------------- Animate Loop --------------------
 const moveSpeed = 0.1;
+const bounds = {minX: -6, maxX: 6, minY: -3, maxY: 3}; // Define movement boundaries
 
 function animate() {
   requestAnimationFrame(animate);
@@ -149,7 +149,12 @@ function animate() {
       pacman.rotation.set(0, Math.PI / 2, 0);
       pacman.position.x += moveSpeed;
     }
+
+    // Keep Pac-Man within bounds
+    pacman.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, pacman.position.x));
+    pacman.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, pacman.position.y));
   }
+
 
   renderer.render(scene, camera);
 }
