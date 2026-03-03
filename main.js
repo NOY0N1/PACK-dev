@@ -12,6 +12,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 1, 8);
 camera.lookAt(0, 0, 0);
+let points = 0; // Initialize points
 
 // -------------------- Renderer --------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -19,6 +20,17 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.style.margin = 0;       // Remove page margin
 document.body.style.overflow = 'hidden'; // Remove scrollbars
 document.body.appendChild(renderer.domElement);
+
+const scoreElement = document.createElement('div');
+scoreElement.style.position = 'absolute';
+scoreElement.style.top = '10px';
+scoreElement.style.left = '10px';
+scoreElement.style.color = 'white';
+scoreElement.style.fontSize = '24px';
+scoreElement.style.fontFamily = 'Arial, sans-serif';  
+scoreElement.innerHTML = `Points: ${points}`;
+document.body.appendChild(scoreElement);
+
 
 // -------------------- Lights --------------------
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -69,11 +81,11 @@ loader.load(
   './dot.glb',            // Your model path
   (gltf) => {
     // Create 10 dots
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       const dot = gltf.scene.clone();
 
       // Position & scale
-      dot.position.set(i * 2 - 9, 2, 0); // Spread dots horizontally, slightly above Pac-Man
+      dot.position.set(i * 1.5 - 5.25, 2, 0); // Spread dots horizontally, slightly above Pac-Man
       dot.scale.set(0.5, 0.5, 0.5);
       dot.rotation.set(0, Math.PI / 2, 0);
 
@@ -156,6 +168,19 @@ function animate() {
   }
 
 
+
+  
+  for (let i=dots.length-1;i>=0;i--){
+    const dot = dots[i];
+    const distance = pacman.position.distanceTo(dot.position);
+    if (distance < 1){
+      scene.remove(dot);
+      points += 10;
+      dots.splice(i, 1);
+      console.log('Dot eaten! Points:', points);   
+      scoreElement.innerHTML = `Points: ${points}`;   
+    }
+  }
   renderer.render(scene, camera);
 }
 
