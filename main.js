@@ -195,20 +195,18 @@ function animate() {
     // Keep Pac-Man within bounds
     pacman.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, pacman.position.x));
     pacman.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, pacman.position.y));
-  }
 
-
-
-  
-  for (let i=dots.length-1;i>=0;i--){
-    const dot = dots[i];
-    const distance = pacman.position.distanceTo(dot.position);
-    if (distance < 1){
-      scene.remove(dot);
-      points += 10;
-      dots.splice(i, 1);
-      console.log('Dot eaten! Points:', points);   
-      scoreElement.innerHTML = `Points: ${points}`;   
+    // Collision detection with dots
+    for (let i=dots.length-1;i>=0;i--){
+      const dot = dots[i];
+      const distance = pacman.position.distanceTo(dot.position);
+      if (distance < 1){
+        scene.remove(dot);
+        points += 10;
+        dots.splice(i, 1);
+        console.log('Dot eaten! Points:', points);
+        scoreElement.innerHTML = `Points: ${points}`;
+      }
     }
   }
   renderer.render(scene, camera);
