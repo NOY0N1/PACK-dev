@@ -111,12 +111,12 @@ loader.load(
 loader.load(
   './ghost.glb',            // Your model path
   (gltf) => {
-    // Create 10 ghosts
-    for (let i = 0; i < 10; i++) {
+    // Create 4 ghosts
+    for (let i = 0; i < 4; i++) {
       const ghost = gltf.scene.clone();
 
       // Position & scale
-      ghost.position.set(i * 2 - 9, 2, 0); // Spread ghosts horizontally, slightly above Pac-Man
+      ghost.position.set(i * 2 - 4, -2, 0); // Spread ghosts horizontally, slightly above Pac-Man
       ghost.scale.set(0.5, 0.5, 0.5);
       ghost.rotation.set(0, Math.PI / 2, 0);
 
