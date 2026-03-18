@@ -52,6 +52,7 @@ const clock = new THREE.Clock();
 let mixer;
 let pacman; // Store reference to Pac-Man
 let ghosts = []; // Store references to multiple ghosts
+let ghostMixers = []; // Store animation mixers for ghosts
 let dots = []; // Store references to multiple dots
 
 // -------------------- Keyboard Controls --------------------
@@ -126,7 +127,9 @@ loader.load(
       if (gltf.animations.length > 0) {
         const ghostMixer = new THREE.AnimationMixer(ghost);
         const action = ghostMixer.clipAction(gltf.animations[0]);
+        action.timeScale = 0.5; // Slow down animation to 50% speed
         action.play();
+        ghostMixers.push(ghostMixer);
       }
     }
 
@@ -143,7 +146,7 @@ loader.load(
 
     // Position & scale
     pacman.position.set(0, 0, 0);
-    pacman.scale.set(1, 1, 1); // Adjust if too small or large
+    pacman.scale.set(0.7, 0.7, 0.7); // Smaller Pac-Man
     pacman.rotation.set(0, Math.PI / 2, 0); // Facing left
 
     scene.add(pacman);
@@ -155,6 +158,7 @@ loader.load(
     if (gltf.animations.length > 0) {
       mixer = new THREE.AnimationMixer(pacman);
       const action = mixer.clipAction(gltf.animations[0]);
+      action.timeScale = 0.5; // Slow down animation to 50% speed
       action.play();
     }
   },
@@ -172,6 +176,9 @@ function animate() {
 
   const delta = clock.getDelta();
   if (mixer) mixer.update(delta);
+
+  // Update ghost animations
+  ghostMixers.forEach(ghostMixer => ghostMixer.update(delta));
 
   // Movement controls
   if (pacman) {
