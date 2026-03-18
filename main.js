@@ -51,6 +51,7 @@ const loader = new GLTFLoader();
 const clock = new THREE.Clock();
 let mixer;
 let pacman; // Store reference to Pac-Man
+let ghosts = []; // Store references to multiple ghosts
 let dots = []; // Store references to multiple dots
 
 // -------------------- Keyboard Controls --------------------
@@ -104,6 +105,35 @@ loader.load(
   },
   undefined,
   (error) => console.error('Error loading dot:', error)
+);
+
+loader.load(
+  './ghost.glb',            // Your model path
+  (gltf) => {
+    // Create 10 ghosts
+    for (let i = 0; i < 10; i++) {
+      const ghost = gltf.scene.clone();
+
+      // Position & scale
+      ghost.position.set(i * 2 - 9, 2, 0); // Spread ghosts horizontally, slightly above Pac-Man
+      ghost.scale.set(0.5, 0.5, 0.5);
+      ghost.rotation.set(0, Math.PI / 2, 0);
+
+      scene.add(ghost);
+      ghosts.push(ghost);
+
+      // Guard against missing animations
+      if (gltf.animations.length > 0) {
+        const ghostMixer = new THREE.AnimationMixer(ghost);
+        const action = ghostMixer.clipAction(gltf.animations[0]);
+        action.play();
+      }
+    }
+
+    console.log('10 ghosts loaded');
+  },
+  undefined,
+  (error) => console.error('Error loading ghost:', error)
 );
 
 loader.load(
