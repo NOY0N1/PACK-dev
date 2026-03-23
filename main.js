@@ -89,7 +89,7 @@ loader.load(
 
       // Position & scale
       dot.position.set(i * 1.5 - 5.25, 2, 0); // Spread dots horizontally, slightly above Pac-Man
-      dot.scale.set(0.5, 0.5, 0.5);
+      dot.scale.set(0.2, 0.2, 0.2);
       dot.rotation.set(0, Math.PI / 2, 0);
 
       scene.add(dot);
@@ -120,7 +120,7 @@ ghostFiles.forEach((ghostFile, i) => {
 
       // Position & scale
       ghost.position.set(i * 2 - 4, -2, 0); // Spread ghosts horizontally
-      ghost.scale.set(0.5, 0.5, 0.5);
+      ghost.scale.set(0.4, 0.4, 0.4);
       ghost.rotation.set(0, Math.PI / 2, 0);
 
       // Add random movement properties to each ghost
@@ -156,7 +156,7 @@ loader.load(
 
     // Position & scale
     pacman.position.set(0, 0, 0);
-    pacman.scale.set(0.7, 0.7, 0.7); // Smaller Pac-Man
+    pacman.scale.set(0.5, 0.5, 0.5); // Smaller Pac-Man
     pacman.rotation.set(0, Math.PI / 2, 0); // Facing left
 
     scene.add(pacman);
@@ -217,7 +217,7 @@ function animate() {
     for (let i=dots.length-1;i>=0;i--){
       const dot = dots[i];
       const distance = pacman.position.distanceTo(dot.position);
-      if (distance < 1){
+      if (distance < 0.5){
         scene.remove(dot);
         points += 10;
         dots.splice(i, 1);
