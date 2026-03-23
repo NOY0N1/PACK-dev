@@ -130,6 +130,10 @@ ghostFiles.forEach((ghostFile, i) => {
       };
       ghost.userData.changeDirectionTimer = Math.random() * 100;
 
+      // Store pupil references from ghost.children[0].children
+      ghost.userData.pupils = ghost.children[0].children;
+      console.log(`${ghostFile} pupils:`, ghost.userData.pupils.length);
+
       scene.add(ghost);
       ghosts.push(ghost);
 
@@ -189,6 +193,51 @@ function animate() {
 
   // Update ghost animations
   ghostMixers.forEach(ghostMixer => ghostMixer.update(delta));
+
+  // Update ghost movements
+  if (!isPaused) {
+    ghosts.forEach((ghost) => {
+      // Update timer for direction changes
+      ghost.userData.changeDirectionTimer -= delta * 60;
+
+      // Change direction randomly
+      if (ghost.userData.changeDirectionTimer <= 0) {
+        ghost.userData.velocity.x = (Math.random() - 0.5) * 0.05;
+        ghost.userData.velocity.y = (Math.random() - 0.5) * 0.05;
+        ghost.userData.changeDirectionTimer = Math.random() * 100 + 50;
+      }
+
+      // Move ghost
+      ghost.position.x += ghost.userData.velocity.x;
+      ghost.position.y += ghost.userData.velocity.y;
+
+      // Keep ghosts within bounds and bounce off walls
+      if (ghost.position.x <= bounds.minX || ghost.position.x >= bounds.maxX) {
+        ghost.userData.velocity.x *= -1;
+        ghost.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, ghost.position.x));
+      }
+      if (ghost.position.y <= bounds.minY || ghost.position.y >= bounds.maxY) {
+        ghost.userData.velocity.y *= -1;
+        ghost.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, ghost.position.y));
+      }
+
+      // Update pupil direction based on movement
+      if (ghost.userData.pupils && ghost.userData.pupils.length > 0) {
+        const velocityMagnitude = Math.sqrt(
+          ghost.userData.velocity.x ** 2 + ghost.userData.velocity.y ** 2
+        );
+
+        if (velocityMagnitude > 0.001) {
+          const pupilOffsetScale = 0.1; // How far pupils move
+          ghost.userData.pupils.forEach((pupil) => {
+            // Move pupils based on velocity direction
+            pupil.position.x = (ghost.userData.velocity.x / velocityMagnitude) * pupilOffsetScale;
+            pupil.position.y = (ghost.userData.velocity.y / velocityMagnitude) * pupilOffsetScale;
+          });
+        }
+      }
+    });
+  }
 
   // Movement controls
   if (pacman && !isPaused) {
