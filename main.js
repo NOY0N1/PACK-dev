@@ -121,7 +121,7 @@ ghostFiles.forEach((ghostFile, i) => {
       // Position & scale
       ghost.position.set(i * 2 - 4, -2, 0); // Spread ghosts horizontally
       ghost.scale.set(0.4, 0.4, 0.4);
-      ghost.rotation.set(0, Math.PI / 2, 0);
+      ghost.rotation.set(0, Math.PI, 0); // Rotate 180 degrees to face forward
 
       // Add random movement properties to each ghost
       ghost.userData.velocity = {
@@ -229,7 +229,7 @@ function animate() {
     // Collision detection with ghosts
     for (let ghost of ghosts) {
       const distance = pacman.position.distanceTo(ghost.position);
-      if (distance < 1.5) {
+      if (distance < .5) {
         isPaused = true;
         console.log('Game Over! Pac-Man hit a ghost!');
         scoreElement.innerHTML = `Game Over! Final Score: ${points}`;
