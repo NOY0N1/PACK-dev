@@ -54,6 +54,7 @@ let pacman; // Store reference to Pac-Man
 let ghosts = []; // Store references to multiple ghosts
 let ghostMixers = []; // Store animation mixers for ghosts
 let dots = []; // Store references to multiple dots
+let isPaused = false; // Track if game is paused
 
 // -------------------- Keyboard Controls --------------------
 const keys = {
@@ -190,7 +191,7 @@ function animate() {
   ghostMixers.forEach(ghostMixer => ghostMixer.update(delta));
 
   // Movement controls
-  if (pacman) {
+  if (pacman && !isPaused) {
     if (keys.ArrowUp || keys.w) {
       pacman.rotation.set(-Math.PI / 2, 0, -Math.PI / 2);
       pacman.position.y += moveSpeed;
@@ -222,6 +223,17 @@ function animate() {
         dots.splice(i, 1);
         console.log('Dot eaten! Points:', points);
         scoreElement.innerHTML = `Points: ${points}`;
+      }
+    }
+
+    // Collision detection with ghosts
+    for (let ghost of ghosts) {
+      const distance = pacman.position.distanceTo(ghost.position);
+      if (distance < 1.5) {
+        isPaused = true;
+        console.log('Game Over! Pac-Man hit a ghost!');
+        scoreElement.innerHTML = `Game Over! Final Score: ${points}`;
+        break;
       }
     }
   }
