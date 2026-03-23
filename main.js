@@ -108,17 +108,26 @@ loader.load(
   (error) => console.error('Error loading dot:', error)
 );
 
-loader.load(
-  './ghost.glb',            // Your model path
-  (gltf) => {
-    // Create 4 ghosts
-    for (let i = 0; i < 4; i++) {
-      const ghost = gltf.scene.clone();
+// Load all ghosts from the ghosts directory
+const ghostFiles = ['Blinky.glb', 'Clyde.glb', 'Inky.glb', 'Pinky.glb'];
+
+ghostFiles.forEach((ghostFile, i) => {
+  loader.load(
+    `./ghosts/${ghostFile}`,
+    (gltf) => {
+      const ghost = gltf.scene;
 
       // Position & scale
-      ghost.position.set(i * 2 - 4, -2, 0); // Spread ghosts horizontally, slightly above Pac-Man
+      ghost.position.set(i * 2 - 4, -2, 0); // Spread ghosts horizontally
       ghost.scale.set(0.5, 0.5, 0.5);
       ghost.rotation.set(0, Math.PI / 2, 0);
+
+      // Add random movement properties to each ghost
+      ghost.userData.velocity = {
+        x: (Math.random() - 0.5) * 0.05,
+        y: (Math.random() - 0.5) * 0.05
+      };
+      ghost.userData.changeDirectionTimer = Math.random() * 100;
 
       scene.add(ghost);
       ghosts.push(ghost);
@@ -131,13 +140,13 @@ loader.load(
         action.play();
         ghostMixers.push(ghostMixer);
       }
-    }
 
-    console.log('10 ghosts loaded');
-  },
-  undefined,
-  (error) => console.error('Error loading ghost:', error)
-);
+      console.log(`${ghostFile} loaded`);
+    },
+    undefined,
+    (error) => console.error(`Error loading ${ghostFile}:`, error)
+  );
+});
 
 loader.load(
   './Packman.glb',            // Your model path
