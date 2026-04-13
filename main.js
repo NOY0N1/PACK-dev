@@ -227,7 +227,7 @@ function animate() {
         const velocityMagnitude = Math.sqrt(
           ghost.userData.velocity.x ** 2 + ghost.userData.velocity.y ** 2
         );
-        const maxAngle = 0.2;
+        const maxAngle = 0.1; // Max rotation angle for pupils
         ghost.userData.pupils.forEach((pupil) => {
           if (velocityMagnitude > 0.001) {
             const dirX = ghost.userData.velocity.x / velocityMagnitude;
