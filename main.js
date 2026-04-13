@@ -130,9 +130,10 @@ ghostFiles.forEach((ghostFile, i) => {
       };
       ghost.userData.changeDirectionTimer = Math.random() * 100;
 
-      // Store pupil references from ghost.children[0].children
-      ghost.userData.pupils = ghost.children[0].children;
-      console.log(`${ghostFile} pupils:`, ghost.userData.pupils.length);
+      // Find Pupil_Bone by name (works across different ghost hierarchies)
+      const pupilBone = ghost.getObjectByName('Pupil_Bone');
+      ghost.userData.pupils = pupilBone ? [pupilBone] : ghost.children[0].children;
+      console.log(`${ghostFile} pupils:`, ghost.userData.pupils.length, pupilBone ? '(Pupil_Bone found)' : '(fallback)');
 
       scene.add(ghost);
       ghosts.push(ghost);
@@ -221,20 +222,23 @@ function animate() {
         ghost.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, ghost.position.y));
       }
 
-      // Update pupil direction based on movement
+      // Rotate pupils to look in movement direction
       if (ghost.userData.pupils && ghost.userData.pupils.length > 0) {
         const velocityMagnitude = Math.sqrt(
           ghost.userData.velocity.x ** 2 + ghost.userData.velocity.y ** 2
         );
-
-        if (velocityMagnitude > 0.001) {
-          const pupilOffsetScale = 0.1; // How far pupils move
-          ghost.userData.pupils.forEach((pupil) => {
-            // Move pupils based on velocity direction
-            pupil.position.x = (ghost.userData.velocity.x / velocityMagnitude) * pupilOffsetScale;
-            pupil.position.y = (ghost.userData.velocity.y / velocityMagnitude) * pupilOffsetScale;
-          });
-        }
+        const maxAngle = 0.2;
+        ghost.userData.pupils.forEach((pupil) => {
+          if (velocityMagnitude > 0.001) {
+            const dirX = ghost.userData.velocity.x / velocityMagnitude;
+            const dirY = ghost.userData.velocity.y / velocityMagnitude;
+            pupil.rotation.y = dirX * maxAngle;  // ghost faces -Z with PI rotation, so X is not flipped at bone level
+            pupil.rotation.x = dirY * maxAngle;  // up/down
+          } else {
+            pupil.rotation.x = 0;
+            pupil.rotation.y = 0;
+          }
+        });
       }
     });
   }
