@@ -20,6 +20,7 @@ export const MAZE_LAYOUT = [
 export const ROWS = MAZE_LAYOUT.length;    // 13
 export const COLS = MAZE_LAYOUT[0].length; // 13
 export const CELL_SIZE = 1.0;
+export const PACMAN_SPAWN = { col: 6, row: 6 }; // center cell, world (0,0)
 
 // Top-left corner offset so maze is centered at origin
 const OFFSET_X = -(COLS * CELL_SIZE) / 2 + CELL_SIZE / 2;

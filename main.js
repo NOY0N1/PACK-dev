@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Ghost } from './ghost.js';
 import { Pacman } from './pacman.js';
-import { buildMaze } from './maze.js';
+import { buildMaze, MAZE_LAYOUT, ROWS, COLS, PACMAN_SPAWN, gridToWorld } from './maze.js';
 
 // -------------------- Scene & Camera --------------------
 const scene = new THREE.Scene();
@@ -63,20 +63,20 @@ window.addEventListener('keyup',   (e) => { if (e.key in keys) keys[e.key] = fal
 // -------------------- Load Dots --------------------
 const loader = new GLTFLoader();
 loader.load('./dot.glb', (gltf) => {
-  for (let i = 0; i < 8; i++) {
-    const dot = gltf.scene.clone();
-    dot.position.set(i * 1.5 - 5.25, 2, 0);
-    dot.scale.set(0.2, 0.2, 0.2);
-    dot.rotation.set(0, Math.PI / 2, 0);
-    scene.add(dot);
-    dots.push(dot);
-
-    if (gltf.animations.length > 0) {
-      const dotMixer = new THREE.AnimationMixer(dot);
-      dotMixer.clipAction(gltf.animations[0]).play();
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      if (MAZE_LAYOUT[row][col] === 0 &&
+          !(col === PACMAN_SPAWN.col && row === PACMAN_SPAWN.row)) {
+        const dot = gltf.scene.clone();
+        const { x, y } = gridToWorld(col, row);
+        dot.position.set(x, y, 0);
+        dot.scale.set(0.15, 0.15, 0.15);
+        scene.add(dot);
+        dots.push(dot);
+      }
     }
   }
-  console.log('Dots loaded');
+  console.log(`${dots.length} dots placed`);
 }, undefined, (e) => console.error('Error loading dot:', e));
 
 // -------------------- Load Ghosts & Pacman --------------------
