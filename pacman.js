@@ -24,9 +24,10 @@ export class Pacman {
 
           if (gltf.animations.length > 0) {
             this.mixer = new THREE.AnimationMixer(this.mesh);
-            const action = this.mixer.clipAction(gltf.animations[0]);
-            action.timeScale = 0.5;
-            action.play();
+            this.action = this.mixer.clipAction(gltf.animations[0]);
+            this.action.timeScale = 2.5;
+            this.action.play();
+            this.action.paused = true; // start paused until moving
           }
 
           scene.add(this.mesh);
@@ -40,8 +41,6 @@ export class Pacman {
   }
 
   update(delta, keys, moveSpeed, bounds) {
-    if (this.mixer) this.mixer.update(delta);
-
     // Buffer the latest input as queued direction
     if (keys.ArrowUp    || keys.w) this.queuedDirection = 'up';
     if (keys.ArrowDown  || keys.s) this.queuedDirection = 'down';
@@ -57,8 +56,8 @@ export class Pacman {
       const turningToVertical   = this.queuedDirection === 'up'   || this.queuedDirection === 'down';
       const turningToHorizontal = this.queuedDirection === 'left' || this.queuedDirection === 'right';
 
-      const alignedOnX = Math.abs(x % 1) < moveSpeed * 2; // close enough to a column center
-      const alignedOnY = Math.abs(y % 1) < moveSpeed * 2; // close enough to a row center
+      const alignedOnX = Math.abs(x % 1) < moveSpeed * 2;
+      const alignedOnY = Math.abs(y % 1) < moveSpeed * 2;
 
       if ((turningToVertical && isHorizontal && alignedOnX) ||
           (turningToHorizontal && isVertical && alignedOnY) ||
@@ -89,6 +88,12 @@ export class Pacman {
 
     this.mesh.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, this.mesh.position.x));
     this.mesh.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, this.mesh.position.y));
+
+    // Play animation only while moving
+    if (this.action) {
+      this.action.paused = this.direction === null;
+      if (!this.action.paused) this.mixer.update(delta);
+    }
   }
 
   get position() {
