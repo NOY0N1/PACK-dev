@@ -3,17 +3,17 @@ import * as THREE from 'three';
 // 1 = wall, 0 = open path
 export const MAZE_LAYOUT = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,2,0,0,0,0,1,0,0,0,0,2,1],
   [1,0,1,1,0,0,1,0,0,1,1,0,1],
   [1,0,1,0,0,0,0,0,0,0,1,0,1],
   [1,0,0,0,0,1,0,1,0,0,0,0,1],
   [1,1,1,0,1,1,0,1,1,0,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,1],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0],  // tunnel row — openings at left and right edges
   [1,1,1,0,1,1,0,1,1,0,1,1,1],
   [1,0,0,0,0,1,0,1,0,0,0,0,1],
   [1,0,1,0,0,0,0,0,0,0,1,0,1],
   [1,0,1,1,0,0,1,0,0,1,1,0,1],
-  [1,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,2,0,0,0,0,1,0,0,0,0,2,1],
   [1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
@@ -21,6 +21,11 @@ export const ROWS = MAZE_LAYOUT.length;    // 13
 export const COLS = MAZE_LAYOUT[0].length; // 13
 export const CELL_SIZE = 1.0;
 export const PACMAN_SPAWN = { col: 6, row: 6 }; // center cell, world (0,0)
+export const TUNNEL_ROW = 6; // row that has left/right tunnel openings
+
+// World X positions of the tunnel edges
+export const TUNNEL_MIN_X = -7;
+export const TUNNEL_MAX_X =  7;
 
 // Top-left corner offset so maze is centered at origin
 const OFFSET_X = -(COLS * CELL_SIZE) / 2 + CELL_SIZE / 2;
@@ -43,6 +48,8 @@ export function worldToGrid(x, y) {
 }
 
 export function isWall(col, row) {
+  // Allow passage beyond left/right edges on the tunnel row
+  if (row === TUNNEL_ROW && (col < 0 || col >= COLS)) return false;
   if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return true;
   return MAZE_LAYOUT[row][col] === 1;
 }
