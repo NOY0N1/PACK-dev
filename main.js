@@ -61,6 +61,11 @@ window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = tru
 window.addEventListener('keyup',   (e) => { if (e.key in keys) keys[e.key] = false; });
 
 // -------------------- Load Dots --------------------
+
+let superPellets = [];
+let flickerTimer = 0;
+const FLICKER_INTERVAL = 0.2; // seconds between on/off
+
 const loader = new GLTFLoader();
 loader.load('./dot.glb', (gltf) => {
   for (let row = 0; row < ROWS; row++) {
@@ -73,6 +78,14 @@ loader.load('./dot.glb', (gltf) => {
         dot.scale.set(0.15, 0.15, 0.15);
         scene.add(dot);
         dots.push(dot);
+      } else if (MAZE_LAYOUT[row][col] === 2) {
+        const dot = gltf.scene.clone();
+        const { x, y } = gridToWorld(col, row);
+        dot.position.set(x, y, 0);
+        dot.scale.set(0.5, 0.5, 0.5);
+        scene.add(dot);
+        dots.push(dot);
+        superPellets.push(dot);
       }
     }
   }
@@ -93,13 +106,20 @@ function animate() {
 
   const delta = clock.getDelta();
 
+  // Flicker super pellets
+  flickerTimer += delta;
+  if (flickerTimer >= FLICKER_INTERVAL) {
+    flickerTimer = 0;
+    superPellets.forEach((p) => { p.visible = !p.visible; });
+  }
+
   if (!isPaused) {
     ghosts.forEach((ghost) => {
       if (ghost.mesh) ghost.update(delta, bounds);
     });
 
     if (pacman.mesh) {
-      pacman.update(delta, keys, moveSpeed, bounds);
+      pacman.update(delta, keys, moveSpeed);
 
       // Dot collision
       for (let i = dots.length - 1; i >= 0; i--) {

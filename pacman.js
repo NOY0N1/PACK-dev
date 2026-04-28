@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { collidesUp, collidesDown, collidesLeft, collidesRight } from './maze.js';
+import { collidesUp, collidesDown, collidesLeft, collidesRight, TUNNEL_MIN_X, TUNNEL_MAX_X } from './maze.js';
 
 const loader = new GLTFLoader();
 
@@ -40,7 +40,7 @@ export class Pacman {
     });
   }
 
-  update(delta, keys, moveSpeed, bounds) {
+  update(delta, keys, moveSpeed) {
     // Buffer the latest input as queued direction
     if (keys.ArrowUp    || keys.w) this.queuedDirection = 'up';
     if (keys.ArrowDown  || keys.s) this.queuedDirection = 'down';
@@ -59,7 +59,9 @@ export class Pacman {
       const alignedOnX = Math.abs(x % 1) < moveSpeed * 2;
       const alignedOnY = Math.abs(y % 1) < moveSpeed * 2;
 
-      if ((turningToVertical && isHorizontal && alignedOnX) ||
+      const sameAxis = (turningToVertical && isVertical) || (turningToHorizontal && isHorizontal);
+      if (sameAxis ||
+          (turningToVertical && isHorizontal && alignedOnX) ||
           (turningToHorizontal && isVertical && alignedOnY) ||
           this.direction === null) {
         this.direction = this.queuedDirection;
@@ -86,8 +88,9 @@ export class Pacman {
       else this.direction = null;
     }
 
-    this.mesh.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, this.mesh.position.x));
-    this.mesh.position.y = Math.max(bounds.minY, Math.min(bounds.maxY, this.mesh.position.y));
+    // Horizontal tunnel wrapping only
+    if (this.mesh.position.x < TUNNEL_MIN_X) this.mesh.position.x = TUNNEL_MAX_X;
+    if (this.mesh.position.x > TUNNEL_MAX_X) this.mesh.position.x = TUNNEL_MIN_X;
 
     // Play animation only while moving
     if (this.action) {
