@@ -70,23 +70,22 @@ const loader = new GLTFLoader();
 loader.load('./dot.glb', (gltf) => {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      if (MAZE_LAYOUT[row][col] === 0 &&
+      if (MAZE_LAYOUT[row][col] !== 1 &&
           !(col === PACMAN_SPAWN.col && row === PACMAN_SPAWN.row)) {
         const dot = gltf.scene.clone();
         const { x, y } = gridToWorld(col, row);
         dot.position.set(x, y, 0);
-        dot.scale.set(0.15, 0.15, 0.15);
+        if (MAZE_LAYOUT[row][col] === 0) {
+          dot.scale.set(0.15, 0.15, 0.15);
+        }
+        else {
+          dot.scale.set(0.5, 0.5, 0.5);
+          superPellets.push(dot);
+        }
+        
         scene.add(dot);
         dots.push(dot);
-      } else if (MAZE_LAYOUT[row][col] === 2) {
-        const dot = gltf.scene.clone();
-        const { x, y } = gridToWorld(col, row);
-        dot.position.set(x, y, 0);
-        dot.scale.set(0.5, 0.5, 0.5);
-        scene.add(dot);
-        dots.push(dot);
-        superPellets.push(dot);
-      }
+      } 
     }
   }
   console.log(`${dots.length} dots placed`);
@@ -124,9 +123,11 @@ function animate() {
       // Dot collision
       for (let i = dots.length - 1; i >= 0; i--) {
         if (pacman.position.distanceTo(dots[i].position) < 0.5) {
+          const isSuper = superPellets.includes(dots[i]);
           scene.remove(dots[i]);
+          if (isSuper) superPellets.splice(superPellets.indexOf(dots[i]), 1);
           dots.splice(i, 1);
-          points += 10;
+          points += isSuper ? 50 : 10;
           scoreElement.innerHTML = `Points: ${points}`;
         }
       }
