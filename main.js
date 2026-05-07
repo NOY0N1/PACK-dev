@@ -70,7 +70,7 @@ const loader = new GLTFLoader();
 loader.load('./dot.glb', (gltf) => {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      if (MAZE_LAYOUT[row][col] !== 1 &&
+      if ((MAZE_LAYOUT[row][col] === 0 || MAZE_LAYOUT[row][col] === 2) &&
           !(col === PACMAN_SPAWN.col && row === PACMAN_SPAWN.row)) {
         const dot = gltf.scene.clone();
         const { x, y } = gridToWorld(col, row);
@@ -125,7 +125,10 @@ function animate() {
         if (pacman.position.distanceTo(dots[i].position) < 0.5) {
           const isSuper = superPellets.includes(dots[i]);
           scene.remove(dots[i]);
-          if (isSuper) superPellets.splice(superPellets.indexOf(dots[i]), 1);
+          if (isSuper) {
+            superPellets.splice(superPellets.indexOf(dots[i]), 1);
+            ghosts.forEach((g) => g.scare());
+          }
           dots.splice(i, 1);
           points += isSuper ? 50 : 10;
           scoreElement.innerHTML = `Points: ${points}`;
@@ -134,10 +137,16 @@ function animate() {
 
       // Ghost collision
       for (const ghost of ghosts) {
-        if (ghost.mesh && pacman.position.distanceTo(ghost.position) < 0.5) {
-          isPaused = true;
-          scoreElement.innerHTML = `Game Over! Final Score: ${points}`;
-          break;
+        if (ghost.normalMesh && pacman.position.distanceTo(ghost.position) < 0.5) {
+          if (ghost.scared) {
+            ghost.respawn();
+            points += 200;
+            scoreElement.innerHTML = `Points: ${points}`;
+          } else {
+            isPaused = true;
+            scoreElement.innerHTML = `Game Over! Final Score: ${points}`;
+            break;
+          }
         }
       }
     }

@@ -1,45 +1,79 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { collidesWithWall } from './maze.js';
+import { isWall, worldToGrid, gridToWorld, GHOST_PEN_SPAWNS, GHOST_PEN_EXIT } from './maze.js';
 
 const loader = new GLTFLoader();
+
+const SCARED_DURATION = 8;
+const FLASH_THRESHOLD = 3;   // seconds left when flashing starts
+const FLASH_INTERVAL  = 0.2; // seconds between blue/white toggle
 
 export class Ghost {
   constructor(ghostFile, index) {
     this.ghostFile = ghostFile;
     this.index = index;
     this.mesh = null;
+    this.normalMesh = null;
+    this.scaredMesh = null;
     this.mixer = null;
-    this.velocity = {
-      x: (Math.random() - 0.5) * 0.05,
-      y: (Math.random() - 0.5) * 0.05
-    };
+    this.scene = null;
+    this.scared = false;
+    this.scaredTimer = 0;
+    this.flashTimer = 0;
+    this.flashBlue = true;
+    this.spawnCell = GHOST_PEN_SPAWNS[index % GHOST_PEN_SPAWNS.length];
+    this.inPen = index < 3;      // only first 3 start in pen; 4th starts outside
+    this.exitTimer = index * 3;  // stagger release: 0s, 3s, 6s
+    this.velocity = { x: 0.03, y: 0 };
     this.changeDirectionTimer = Math.random() * 100;
     this.pupils = [];
   }
 
   load(scene) {
+    this.scene = scene;
     return new Promise((resolve, reject) => {
       loader.load(
         `./ghosts/${this.ghostFile}`,
         (gltf) => {
-          this.mesh = gltf.scene;
-          this.mesh.position.set(this.index * 2 - 4, -2, 0);
-          this.mesh.scale.set(0.4, 0.4, 0.4);
-          this.mesh.rotation.set(0, Math.PI, 0);
+          this.normalMesh = gltf.scene;
+          const spawnWorld = gridToWorld(this.spawnCell.col, this.spawnCell.row);
+          this.normalMesh.position.set(spawnWorld.x, spawnWorld.y, 0);
+          this.normalMesh.scale.set(0.4, 0.4, 0.4);
+          this.normalMesh.rotation.set(0, Math.PI, 0);
 
-          const pupilBone = this.mesh.getObjectByName('Pupil_Bone');
-          this.pupils = pupilBone ? [pupilBone] : this.mesh.children[0]?.children ?? [];
-          console.log(`${this.ghostFile} pupils:`, this.pupils.length, pupilBone ? '(Pupil_Bone found)' : '(fallback)');
+          const pupilBone = this.normalMesh.getObjectByName('Pupil_Bone');
+          this.pupils = pupilBone ? [pupilBone] : this.normalMesh.children[0]?.children ?? [];
 
           if (gltf.animations.length > 0) {
-            this.mixer = new THREE.AnimationMixer(this.mesh);
+            this.mixer = new THREE.AnimationMixer(this.normalMesh);
             const action = this.mixer.clipAction(gltf.animations[0]);
             action.timeScale = 0.5;
             action.play();
           }
 
+          this.mesh = this.normalMesh;
           scene.add(this.mesh);
+
+          // Preload scared model
+          loader.load('./ghosts/Scared.glb', (scaredGltf) => {
+            this.scaredMesh = scaredGltf.scene;
+            this.scaredMesh.scale.set(0.4, 0.4, 0.4);
+            this.scaredMesh.rotation.set(0, Math.PI, 0);
+            this.scaredMesh.visible = false;
+            this.scaredMesh.traverse((child) => {
+              if (child.isMesh) {
+                child.material = child.material.clone();
+                child.material.color.set(0x0000ff);
+              }
+            });
+            scene.add(this.scaredMesh);
+
+            if (scaredGltf.animations.length > 0) {
+              this.scaredMixer = new THREE.AnimationMixer(this.scaredMesh);
+              this.scaredMixer.clipAction(scaredGltf.animations[0]).play();
+            }
+          });
+
           console.log(`${this.ghostFile} loaded`);
           resolve(this);
         },
@@ -49,30 +83,116 @@ export class Ghost {
     });
   }
 
+  scare() {
+    if (!this.scaredMesh) return;
+    this.scared = true;
+    this.scaredTimer = SCARED_DURATION;
+    this.flashTimer = FLASH_INTERVAL;
+    this.flashBlue = true;
+    this.scaredMesh.traverse((child) => {
+      if (child.isMesh) child.material.color.set(0x0000ff);
+    });
+    this.normalMesh.visible = false;
+    this.scaredMesh.visible = true;
+    this.scaredMesh.position.copy(this.normalMesh.position);
+    this.mesh = this.scaredMesh;
+  }
+
+  _unScare() {
+    this.scared = false;
+    this.scaredMesh.visible = false;
+    this.normalMesh.visible = true;
+    this.mesh = this.normalMesh;
+  }
+
+  respawn() {
+    this._unScare();
+    const spawnWorld = gridToWorld(this.spawnCell.col, this.spawnCell.row);
+    this.normalMesh.position.set(spawnWorld.x, spawnWorld.y, 0);
+    this.inPen = true;
+    this.exitTimer = 3;
+    this.velocity = { x: 0.03, y: 0 };
+  }
+
   update(delta, bounds) {
-    this.changeDirectionTimer -= delta * 60;
-    if (this.changeDirectionTimer <= 0) {
-      this.velocity.x = (Math.random() - 0.5) * 0.05;
-      this.velocity.y = (Math.random() - 0.5) * 0.05;
-      this.changeDirectionTimer = Math.random() * 100 + 50;
+    // Count down scared timer
+    if (this.scared) {
+      this.scaredTimer -= delta;
+      if (this.scaredTimer <= 0) {
+        this._unScare();
+      } else if (this.scaredTimer <= FLASH_THRESHOLD) {
+        this.flashTimer -= delta;
+        if (this.flashTimer <= 0) {
+          this.flashTimer = FLASH_INTERVAL;
+          this.flashBlue = !this.flashBlue;
+          const color = this.flashBlue ? 0x0000ff : 0xffffff;
+          this.scaredMesh.traverse((child) => {
+            if (child.isMesh) child.material.color.set(color);
+          });
+        }
+      }
     }
 
-    const { x, y } = this.mesh.position;
-    const nextX = x + this.velocity.x;
-    const nextY = y + this.velocity.y;
+    const { x, y } = this.normalMesh.position;
 
-    const hitX = collidesWithWall(nextX, y) || nextX <= bounds.minX || nextX >= bounds.maxX;
-    const hitY = collidesWithWall(x, nextY) || nextY <= bounds.minY || nextY >= bounds.maxY;
+    if (this.inPen) {
+      // Count down before exiting
+      this.exitTimer -= delta;
+      if (this.exitTimer <= 0) {
+        // Move toward pen exit (above door)
+        const exit = gridToWorld(GHOST_PEN_EXIT.col, GHOST_PEN_EXIT.row);
+        const dx = exit.x - x;
+        const dy = exit.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.1) {
+          this.inPen = false;
+          this.velocity = { x: (Math.random() - 0.5) * 0.05, y: -0.05 };
+        } else {
+          const speed = 0.04;
+          this.normalMesh.position.x += (dx / dist) * speed;
+          this.normalMesh.position.y += (dy / dist) * speed;
+        }
+      } else {
+        // Bounce inside pen while waiting
+        const nextX = x + this.velocity.x;
+        const nextY = y + this.velocity.y;
+        const { col: cx, row: cy } = worldToGrid(nextX, nextY);
+        if (isWall(cx, cy, true)) this.velocity.x *= -1;
+        else this.normalMesh.position.x = nextX;
+        const { col: cx2, row: cy2 } = worldToGrid(x, nextY);
+        if (isWall(cx2, cy2, true)) this.velocity.y *= -1;
+        else this.normalMesh.position.y = nextY;
+      }
+    } else {
+      // Normal roaming — ghost can pass through pen door
+      this.changeDirectionTimer -= delta * 60;
+      if (this.changeDirectionTimer <= 0) {
+        this.velocity.x = (Math.random() - 0.5) * 0.05;
+        this.velocity.y = (Math.random() - 0.5) * 0.05;
+        this.changeDirectionTimer = Math.random() * 100 + 50;
+      }
 
-    if (hitX) this.velocity.x *= -1;
-    else this.mesh.position.x = nextX;
+      const nextX = x + this.velocity.x;
+      const nextY = y + this.velocity.y;
+      const { col: cx,  row: cy  } = worldToGrid(nextX, y);
+      const { col: cx2, row: cy2 } = worldToGrid(x, nextY);
+      const hitX = isWall(cx,  cy,  true) || nextX <= bounds.minX || nextX >= bounds.maxX;
+      const hitY = isWall(cx2, cy2, true) || nextY <= bounds.minY || nextY >= bounds.maxY;
 
-    if (hitY) this.velocity.y *= -1;
-    else this.mesh.position.y = nextY;
+      if (hitX) this.velocity.x *= -1;
+      else this.normalMesh.position.x = nextX;
+
+      if (hitY) this.velocity.y *= -1;
+      else this.normalMesh.position.y = nextY;
+    }
+
+    // Keep scared mesh in sync with normal mesh position
+    if (this.scaredMesh) this.scaredMesh.position.copy(this.normalMesh.position);
 
     this._updatePupils();
 
     if (this.mixer) this.mixer.update(delta);
+    if (this.scared && this.scaredMixer) this.scaredMixer.update(delta);
   }
 
   _updatePupils() {
@@ -95,6 +215,6 @@ export class Ghost {
   }
 
   get position() {
-    return this.mesh.position;
+    return this.normalMesh.position;
   }
 }

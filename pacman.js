@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { collidesUp, collidesDown, collidesLeft, collidesRight, TUNNEL_MIN_X, TUNNEL_MAX_X } from './maze.js';
+import { collidesUp, collidesDown, collidesLeft, collidesRight, TUNNEL_MIN_X, TUNNEL_MAX_X, PACMAN_SPAWN, gridToWorld } from './maze.js';
 
 const loader = new GLTFLoader();
 
@@ -18,7 +18,8 @@ export class Pacman {
         './Packman.glb',
         (gltf) => {
           this.mesh = gltf.scene;
-          this.mesh.position.set(0, 0, 0);
+          const spawn = gridToWorld(PACMAN_SPAWN.col, PACMAN_SPAWN.row);
+          this.mesh.position.set(spawn.x, spawn.y, 0);
           this.mesh.scale.set(0.5, 0.5, 0.5);
           this.mesh.rotation.set(0, Math.PI / 2, 0);
 
