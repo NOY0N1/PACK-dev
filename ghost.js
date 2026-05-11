@@ -87,7 +87,7 @@ export class Ghost {
 
   scare() {
     if (!this.scaredMesh) return;
-    if (this.inPen) return; // Don't scare if still in pen
+    //if (this.inPen) return; // Don't scare if still in pen
     this.scared = true;
     this.scaredTimer = SCARED_DURATION;
     this.flashTimer = FLASH_INTERVAL;
