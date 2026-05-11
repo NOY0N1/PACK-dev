@@ -23,10 +23,12 @@ export class Ghost {
     this.flashBlue = true;
     this.spawnCell = GHOST_PEN_SPAWNS[index % GHOST_PEN_SPAWNS.length];
     this.inPen = index < 3;      // only first 3 start in pen; 4th starts outside
-    this.exitTimer = index * 3;  // stagger release: 0s, 3s, 6s
+    this.exitTimer = (index * 3) + 5;  // stagger release: 0s, 3s, 6s
     this.velocity = { x: 0.03, y: 0 };
     this.changeDirectionTimer = Math.random() * 100;
     this.pupils = [];
+    this.exiting = false;
+
   }
 
   load(scene) {
@@ -85,6 +87,7 @@ export class Ghost {
 
   scare() {
     if (!this.scaredMesh) return;
+    if (this.inPen) return; // Don't scare if still in pen
     this.scared = true;
     this.scaredTimer = SCARED_DURATION;
     this.flashTimer = FLASH_INTERVAL;
@@ -140,28 +143,47 @@ export class Ghost {
       this.exitTimer -= delta;
       if (this.exitTimer <= 0) {
         // Move toward pen exit (above door)
+        this.exiting = true;  
         const exit = gridToWorld(GHOST_PEN_EXIT.col, GHOST_PEN_EXIT.row);
         const dx = exit.x - x;
         const dy = exit.y - y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 0.1) {
           this.inPen = false;
-          this.velocity = { x: (Math.random() - 0.5) * 0.05, y: -0.05 };
+          this.exiting = false;
+          this.velocity = { x: 0, y: -0.05 };
         } else {
           const speed = 0.04;
           this.normalMesh.position.x += (dx / dist) * speed;
           this.normalMesh.position.y += (dy / dist) * speed;
         }
       } else {
-        // Bounce inside pen while waiting
-        const nextX = x + this.velocity.x;
-        const nextY = y + this.velocity.y;
-        const { col: cx, row: cy } = worldToGrid(nextX, nextY);
-        if (isWall(cx, cy, true)) this.velocity.x *= -1;
-        else this.normalMesh.position.x = nextX;
-        const { col: cx2, row: cy2 } = worldToGrid(x, nextY);
-        if (isWall(cx2, cy2, true)) this.velocity.y *= -1;
-        else this.normalMesh.position.y = nextY;
+        // Normal roaming
+  this.changeDirectionTimer -= delta * 60;
+  if (this.changeDirectionTimer <= 0) {
+    this.velocity.x = (Math.random() - 0.5) * 0.05;
+    this.velocity.y = (Math.random() - 0.5) * 0.05;
+    this.changeDirectionTimer = Math.random() * 100 + 50;
+  }
+
+  const nextX = x + this.velocity.x;
+  const nextY = y + this.velocity.y;
+  const { col: cx,  row: cy  } = worldToGrid(nextX, y);
+  const { col: cx2, row: cy2 } = worldToGrid(x, nextY);
+  const hitX = isWall(cx,  cy,  true) || nextX <= bounds.minX || nextX >= bounds.maxX;
+  const hitY = isWall(cx2, cy2, true) || nextY <= bounds.minY || nextY >= bounds.maxY;
+
+  if (hitX) this.velocity.x *= -1;
+  else this.normalMesh.position.x = nextX;
+
+  if (hitY) this.velocity.y *= -1;
+  else this.normalMesh.position.y = nextY;
+
+  // Prevent drifting back into pen
+  const { col, row } = worldToGrid(this.normalMesh.position.x, this.normalMesh.position.y);
+  if (this.isPenCell(col, row)) {
+    this.normalMesh.position.y -= 0.1; // nudge upward out of pen
+  }
       }
     } else {
       // Normal roaming — ghost can pass through pen door
@@ -194,6 +216,10 @@ export class Ghost {
     if (this.mixer) this.mixer.update(delta);
     if (this.scared && this.scaredMixer) this.scaredMixer.update(delta);
   }
+
+  isPenCell(col, row) {
+  return GHOST_PEN_SPAWNS.some(cell => cell.col === col && cell.row === row);
+}
 
   _updatePupils() {
     if (this.pupils.length === 0) return;

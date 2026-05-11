@@ -92,7 +92,7 @@ loader.load('./dot.glb', (gltf) => {
 }, undefined, (e) => console.error('Error loading dot:', e));
 
 // -------------------- Load Ghosts & Pacman --------------------
-const ghostFiles = ['Blinky.glb', 'Clyde.glb', 'Inky.glb', 'Pinky.glb'];
+const ghostFiles = ['Pinky.glb', 'Inky.glb', 'Clyde.glb', 'Blinky.glb'];
 const ghosts = ghostFiles.map((file, i) => new Ghost(file, i));
 ghosts.forEach((ghost) => ghost.load(scene));
 
