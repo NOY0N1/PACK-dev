@@ -137,7 +137,7 @@ function animate() {
 
       // Ghost collision
       for (const ghost of ghosts) {
-        if (ghost.normalMesh && pacman.position.distanceTo(ghost.position) < 0.5) {
+        if (ghost.normalMesh && !ghost.eyesActive && pacman.position.distanceTo(ghost.position) < 0.5) {
           if (ghost.scared) {
             ghost.respawn();
             points += 200;

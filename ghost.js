@@ -28,7 +28,8 @@ export class Ghost {
     this.changeDirectionTimer = Math.random() * 100;
     this.pupils = [];
     this.exiting = false;
-
+    this.eyesMesh = null;
+    this.eyesActive = false;
   }
 
   load(scene) {
@@ -76,6 +77,15 @@ export class Ghost {
             }
           });
 
+          // Preload eyes model
+          loader.load('./ghosts/Eyes.glb', (eyesGltf) => {
+            this.eyesMesh = eyesGltf.scene;
+            this.eyesMesh.scale.set(0.4, 0.4, 0.4);
+            this.eyesMesh.rotation.set(0, Math.PI, 0);
+            this.eyesMesh.visible = false;
+            scene.add(this.eyesMesh);
+          });
+
           console.log(`${this.ghostFile} loaded`);
           resolve(this);
         },
@@ -110,8 +120,20 @@ export class Ghost {
 
   respawn() {
     this._unScare();
+    this.normalMesh.visible = false;
+    if (this.eyesMesh) {
+      this.eyesMesh.position.copy(this.normalMesh.position);
+      this.eyesMesh.visible = true;
+      this.eyesActive = true;
+    } else {
+      this._finishRespawn();
+    }
+  }
+
+  _finishRespawn() {
     const spawnWorld = gridToWorld(this.spawnCell.col, this.spawnCell.row);
     this.normalMesh.position.set(spawnWorld.x, spawnWorld.y, 0);
+    this.normalMesh.visible = true;
     this.inPen = true;
     this.exitTimer = 3;
     this.velocity = { x: 0.03, y: 0 };
@@ -210,6 +232,25 @@ export class Ghost {
 
     // Keep scared mesh in sync with normal mesh position
     if (this.scaredMesh) this.scaredMesh.position.copy(this.normalMesh.position);
+
+    // Eyes travel back to spawn
+    if (this.eyesActive && this.eyesMesh) {
+      const target = gridToWorld(this.spawnCell.col, this.spawnCell.row);
+      const ex = this.eyesMesh.position.x;
+      const ey = this.eyesMesh.position.y;
+      const dx = target.x - ex;
+      const dy = target.y - ey;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 0.1) {
+        this.eyesMesh.visible = false;
+        this.eyesActive = false;
+        this._finishRespawn();
+      } else {
+        const speed = 0.08;
+        this.eyesMesh.position.x += (dx / dist) * speed;
+        this.eyesMesh.position.y += (dy / dist) * speed;
+      }
+    }
 
     this._updatePupils();
 
