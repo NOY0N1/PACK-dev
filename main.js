@@ -113,8 +113,11 @@ function animate() {
   }
 
   if (!isPaused) {
-    ghosts.forEach((ghost) => {
-      if (ghost.mesh) ghost.update(delta, bounds);
+    ghosts.forEach((ghost, i) => {
+      if (ghost.mesh) {
+        const target = (i === 0 && pacman.mesh) ? pacman.position : null;
+        ghost.update(delta, bounds, target);
+      }
     });
 
     if (pacman.mesh) {

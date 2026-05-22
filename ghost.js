@@ -139,7 +139,7 @@ export class Ghost {
     this.velocity = { x: 0.03, y: 0 };
   }
 
-  update(delta, bounds) {
+  update(delta, bounds, target = null) {
     // Count down scared timer
     if (this.scared) {
       this.scaredTimer -= delta;
@@ -208,12 +208,23 @@ export class Ghost {
   }
       }
     } else {
-      // Normal roaming — ghost can pass through pen door
-      this.changeDirectionTimer -= delta * 60;
-      if (this.changeDirectionTimer <= 0) {
-        this.velocity.x = (Math.random() - 0.5) * 0.05;
-        this.velocity.y = (Math.random() - 0.5) * 0.05;
-        this.changeDirectionTimer = Math.random() * 100 + 50;
+      // Chase target or roam randomly
+      if (target && !this.scared) {
+        const dx = target.x - x;
+        const dy = target.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0.001) {
+          const speed = 0.04;
+          this.velocity.x = (dx / dist) * speed;
+          this.velocity.y = (dy / dist) * speed;
+        }
+      } else {
+        this.changeDirectionTimer -= delta * 60;
+        if (this.changeDirectionTimer <= 0) {
+          this.velocity.x = (Math.random() - 0.5) * 0.05;
+          this.velocity.y = (Math.random() - 0.5) * 0.05;
+          this.changeDirectionTimer = Math.random() * 100 + 50;
+        }
       }
 
       const nextX = x + this.velocity.x;
