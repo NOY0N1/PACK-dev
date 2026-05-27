@@ -9,8 +9,9 @@ const FLASH_THRESHOLD = 3;   // seconds left when flashing starts
 const FLASH_INTERVAL  = 0.2; // seconds between blue/white toggle
 
 export class Ghost {
-  constructor(ghostFile, index) {
+  constructor(ghostFile, name, index) {
     this.ghostFile = ghostFile;
+    this.name = name;
     this.index = index;
     this.mesh = null;
     this.normalMesh = null;
@@ -210,8 +211,29 @@ export class Ghost {
     } else {
       // Chase target or roam randomly
       if (target && !this.scared) {
-        const dx = target.x - x;
-        const dy = target.y - y;
+        let chaseX, chaseY;
+        if (this.name === 'Pinky' && target.position) {
+          // Pinky: aim 4 tiles ahead of Pacman's current direction
+          const LOOKAHEAD = 4;
+          const dirOffsets = { up: [0, LOOKAHEAD], down: [0, -LOOKAHEAD], left: [-LOOKAHEAD, 0], right: [LOOKAHEAD, 0] };
+          const [ox, oy] = (target.direction && dirOffsets[target.direction]) || [0, 0];
+          chaseX = target.position.x + ox;
+          chaseY = target.position.y + oy;
+        } else if (this.name === 'Inky' && target.position && target.blinkyPosition) {
+          // Inky: pivot is 2 tiles ahead of Pacman, then double the vector from Blinky to that pivot
+          const LOOKAHEAD = 2;
+          const dirOffsets = { up: [0, LOOKAHEAD], down: [0, -LOOKAHEAD], left: [-LOOKAHEAD, 0], right: [LOOKAHEAD, 0] };
+          const [ox, oy] = (target.direction && dirOffsets[target.direction]) || [0, 0];
+          const pivotX = target.position.x + ox;
+          const pivotY = target.position.y + oy;
+          chaseX = pivotX + (pivotX - target.blinkyPosition.x);
+          chaseY = pivotY + (pivotY - target.blinkyPosition.y);
+        } else {
+          chaseX = (target.position ?? target).x;
+          chaseY = (target.position ?? target).y;
+        }
+        const dx = chaseX - x;
+        const dy = chaseY - y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 0.001) {
           const speed = 0.04;

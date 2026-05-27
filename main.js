@@ -93,7 +93,7 @@ loader.load('./dot.glb', (gltf) => {
 
 // -------------------- Load Ghosts & Pacman --------------------
 const ghostFiles = ['Pinky.glb', 'Inky.glb', 'Clyde.glb', 'Blinky.glb'];
-const ghosts = ghostFiles.map((file, i) => new Ghost(file, i));
+const ghosts = ghostFiles.map((file, i) => new Ghost(file, file.replace('.glb', ''), i));
 ghosts.forEach((ghost) => ghost.load(scene));
 
 const pacman = new Pacman();
@@ -113,9 +113,15 @@ function animate() {
   }
 
   if (!isPaused) {
-    ghosts.forEach((ghost, i) => {
+    const blinky = ghosts.find(g => g.name === 'Blinky');
+    ghosts.forEach((ghost) => {
       if (ghost.mesh) {
-        const target = (i === 0 && pacman.mesh) ? pacman.position : null;
+        let target = pacman.mesh ? pacman.position : null;
+        if (ghost.name === 'Pinky' && pacman.mesh) {
+          target = { position: pacman.position, direction: pacman.direction };
+        } else if (ghost.name === 'Inky' && pacman.mesh && blinky?.mesh) {
+          target = { position: pacman.position, direction: pacman.direction, blinkyPosition: blinky.position };
+        }
         ghost.update(delta, bounds, target);
       }
     });
