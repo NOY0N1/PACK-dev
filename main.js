@@ -52,6 +52,19 @@ const bounds = { minX: -6, maxX: 6, minY: -6, maxY: 6 };
 let isPaused = false;
 let dots = [];
 
+// Scatter/chase sequence: [scatter7, chase20, scatter7, chase20, scatter5, chase∞]
+const PHASE_SEQUENCE = [
+  { scatter: true,  duration: 7  },
+  { scatter: false, duration: 20 },
+  { scatter: true,  duration: 7  },
+  { scatter: false, duration: 20 },
+  { scatter: true,  duration: 5  },
+  { scatter: false, duration: Infinity },
+];
+let phaseIndex = 0;
+let scatterPhase = true;
+let phaseTimer = PHASE_SEQUENCE[0].duration;
+
 const keys = {
   ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
   w: false, a: false, s: false, d: false
@@ -94,7 +107,7 @@ loader.load('./dot.glb', (gltf) => {
 // -------------------- Load Ghosts & Pacman --------------------
 const ghostFiles = ['Pinky.glb', 'Inky.glb', 'Clyde.glb', 'Blinky.glb'];
 const ghosts = ghostFiles.map((file, i) => new Ghost(file, file.replace('.glb', ''), i));
-ghosts.forEach((ghost) => ghost.load(scene));
+ghosts.forEach((ghost) => { ghost.scatter = true; ghost.load(scene); });
 
 const pacman = new Pacman();
 pacman.load(scene);
@@ -113,6 +126,16 @@ function animate() {
   }
 
   if (!isPaused) {
+    // Advance scatter/chase phase sequence
+    phaseTimer -= delta;
+    if (phaseTimer <= 0 && phaseIndex < PHASE_SEQUENCE.length - 1) {
+      phaseIndex++;
+      const phase = PHASE_SEQUENCE[phaseIndex];
+      scatterPhase = phase.scatter;
+      phaseTimer = phase.duration;
+      ghosts.forEach((g) => scatterPhase ? g.startScatter() : g.stopScatter());
+    }
+
     const blinky = ghosts.find(g => g.name === 'Blinky');
     ghosts.forEach((ghost) => {
       if (ghost.mesh) {
