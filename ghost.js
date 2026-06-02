@@ -2,6 +2,35 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { isWall, worldToGrid, gridToWorld, GHOST_PEN_SPAWNS, GHOST_PEN_EXIT } from './maze.js';
 
+// Waypoint loops each ghost follows during scatter.
+// Every segment between consecutive waypoints is a straight, wall-free corridor.
+const SCATTER_LOOPS = {
+  Pinky: [ // top-left — clockwise rectangle via row4 (avoids inner walls at cols 2-3 rows 2-3)
+    { col: 1, row: 1 },
+    { col: 1, row: 4 },
+    { col: 4, row: 4 },
+    { col: 4, row: 1 },
+  ],
+  Blinky: [ // top-right — clockwise rectangle via row4 (avoids inner walls at cols 9-10 rows 2-3, col10 row3)
+    { col: 11, row: 1 },
+    { col: 11, row: 4 },
+    { col:  8, row: 4 },
+    { col:  8, row: 1 },
+  ],
+  Clyde: [ // bottom-left — rectangle via row8 (avoids inner walls at col2 rows 9-10, cols 2-3 row10)
+    { col: 1, row: 11 },
+    { col: 1, row:  8 },
+    { col: 4, row:  8 },
+    { col: 4, row: 11 },
+  ],
+  Inky: [ // bottom-right — rectangle via row8 (avoids inner walls at col10 rows 9-10, cols 9-10 row10)
+    { col: 11, row: 11 },
+    { col: 11, row:  8 },
+    { col:  8, row:  8 },
+    { col:  8, row: 11 },
+  ],
+};
+
 const loader = new GLTFLoader();
 
 const SCARED_DURATION = 8;
@@ -31,6 +60,9 @@ export class Ghost {
     this.exiting = false;
     this.eyesMesh = null;
     this.eyesActive = false;
+    this.scatter = false;
+    this.scatterLoop = SCATTER_LOOPS[name] ?? [{ col: 1, row: 1 }];
+    this.scatterWaypointIndex = 0;
   }
 
   load(scene) {
@@ -110,6 +142,15 @@ export class Ghost {
     this.scaredMesh.visible = true;
     this.scaredMesh.position.copy(this.normalMesh.position);
     this.mesh = this.scaredMesh;
+  }
+
+  startScatter() {
+    this.scatter = true;
+    this.scatterWaypointIndex = 0;
+  }
+
+  stopScatter() {
+    this.scatter = false;
   }
 
   _unScare() {
@@ -209,8 +250,26 @@ export class Ghost {
   }
       }
     } else {
+      // Scatter: follow waypoint loop one axis at a time through open corridors
+      if (this.scatter && !this.scared) {
+        const wp = this.scatterLoop[this.scatterWaypointIndex];
+        const wpWorld = gridToWorld(wp.col, wp.row);
+        const dx = wpWorld.x - x;
+        const dy = wpWorld.y - y;
+        const speed = 0.04;
+        if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+          this.scatterWaypointIndex = (this.scatterWaypointIndex + 1) % this.scatterLoop.length;
+          this.velocity.x = 0;
+          this.velocity.y = 0;
+        } else if (Math.abs(dx) > Math.abs(dy)) {
+          this.velocity.x = Math.sign(dx) * speed;
+          this.velocity.y = 0;
+        } else {
+          this.velocity.x = 0;
+          this.velocity.y = Math.sign(dy) * speed;
+        }
       // Chase target or roam randomly
-      if (target && !this.scared) {
+      } else if (target && !this.scared) {
         let chaseX, chaseY;
         if (this.name === 'Pinky' && target.position) {
           // Pinky: aim 4 tiles ahead of Pacman's current direction
@@ -256,10 +315,10 @@ export class Ghost {
       const hitX = isWall(cx,  cy,  true) || nextX <= bounds.minX || nextX >= bounds.maxX;
       const hitY = isWall(cx2, cy2, true) || nextY <= bounds.minY || nextY >= bounds.maxY;
 
-      if (hitX) this.velocity.x *= -1;
+      if (hitX) this.velocity.x *= -.01;
       else this.normalMesh.position.x = nextX;
 
-      if (hitY) this.velocity.y *= -1;
+      if (hitY) this.velocity.y *= -.01;
       else this.normalMesh.position.y = nextY;
     }
 
