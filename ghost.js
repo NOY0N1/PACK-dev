@@ -315,10 +315,10 @@ export class Ghost {
       const hitX = isWall(cx,  cy,  true) || nextX <= bounds.minX || nextX >= bounds.maxX;
       const hitY = isWall(cx2, cy2, true) || nextY <= bounds.minY || nextY >= bounds.maxY;
 
-      if (hitX) this.velocity.x *= -.01;
+      if (hitX) this.velocity.x *= -1;
       else this.normalMesh.position.x = nextX;
 
-      if (hitY) this.velocity.y *= -.01;
+      if (hitY) this.velocity.y *= -1;
       else this.normalMesh.position.y = nextY;
     }
 
