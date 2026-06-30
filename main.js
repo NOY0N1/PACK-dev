@@ -90,8 +90,7 @@ loader.load('./dot.glb', (gltf) => {
         dot.position.set(x, y, 0);
         if (MAZE_LAYOUT[row][col] === 0) {
           dot.scale.set(0.15, 0.15, 0.15);
-        }
-        else {
+        } else {
           dot.scale.set(0.5, 0.5, 0.5);
           superPellets.push(dot);
         }
@@ -195,3 +194,4 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+

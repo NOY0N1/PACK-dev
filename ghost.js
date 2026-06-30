@@ -65,6 +65,14 @@ export class Ghost {
     this.scatterWaypointIndex = 0;
   }
 
+  pythagorean(a, b) {
+    return Math.sqrt(a * a + b * b);
+  }
+
+  getDistance(x1, y1, x2, y2) {
+    return this.pythagorean(x2 - x1, y2 - y1);
+  }  
+
   load(scene) {
     this.scene = scene;
     return new Promise((resolve, reject) => {
@@ -211,7 +219,7 @@ export class Ghost {
         const exit = gridToWorld(GHOST_PEN_EXIT.col, GHOST_PEN_EXIT.row);
         const dx = exit.x - x;
         const dy = exit.y - y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const dist = this.getDistance(x, y, exit.x, exit.y);
         if (dist < 0.1) {
           this.inPen = false;
           this.exiting = false;
@@ -288,9 +296,11 @@ export class Ghost {
           chaseX = pivotX + (pivotX - target.blinkyPosition.x);
           chaseY = pivotY + (pivotY - target.blinkyPosition.y);
         } else {
+          //Blinky, Clyde, and Pinky without direction info: directly chase Pacman's current position
           chaseX = (target.position ?? target).x;
           chaseY = (target.position ?? target).y;
         }
+        //Chasing
         const dx = chaseX - x;
         const dy = chaseY - y;
         const dist = Math.sqrt(dx * dx + dy * dy);
