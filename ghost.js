@@ -38,6 +38,7 @@ const FLASH_THRESHOLD = 3;   // seconds left when flashing starts
 const FLASH_INTERVAL  = 0.2; // seconds between blue/white toggle
 
 export class Ghost {
+  static occupiedPenSlots = new Set();
   constructor(ghostFile, name, index) {
     this.ghostFile = ghostFile;
     this.name = name;
@@ -173,12 +174,16 @@ export class Ghost {
   }
 
   _finishRespawn() {
-    const spawnWorld = gridToWorld(this.spawnCell.col, this.spawnCell.row);
+    const slotIndex = [0, 1, 2].find(i => !Ghost.occupiedPenSlots.has(i)) ?? 0;
+    Ghost.occupiedPenSlots.add(slotIndex);
+    this.penSlot = slotIndex;
+    const penCell = GHOST_PEN_SPAWNS[slotIndex];
+    const spawnWorld = gridToWorld(penCell.col, penCell.row);
     this.normalMesh.position.set(spawnWorld.x, spawnWorld.y, 0);
     this.normalMesh.visible = true;
     this.inPen = true;
     this.exitTimer = 3;
-    this.velocity = { x: 0.03, y: 0 };
+    this.velocity = { x: 0, y: 0 };
   }
 
   update(delta, bounds, target = null) {
@@ -216,38 +221,25 @@ export class Ghost {
           this.inPen = false;
           this.exiting = false;
           this.velocity = { x: 0, y: -0.05 };
+          if (this.penSlot !== undefined) {
+            Ghost.occupiedPenSlots.delete(this.penSlot);
+            this.penSlot = undefined;
+          }
         } else {
           const speed = 0.04;
           this.normalMesh.position.x += (dx / dist) * speed;
           this.normalMesh.position.y += (dy / dist) * speed;
         }
       } else {
-        // Normal roaming
-  this.changeDirectionTimer -= delta * 60;
-  if (this.changeDirectionTimer <= 0) {
-    this.velocity.x = (Math.random() - 0.5) * 0.05;
-    this.velocity.y = (Math.random() - 0.5) * 0.05;
-    this.changeDirectionTimer = Math.random() * 100 + 50;
-  }
-
-  const nextX = x + this.velocity.x;
-  const nextY = y + this.velocity.y;
-  const { col: cx,  row: cy  } = worldToGrid(nextX, y);
-  const { col: cx2, row: cy2 } = worldToGrid(x, nextY);
-  const hitX = isWall(cx,  cy,  true) || nextX <= bounds.minX || nextX >= bounds.maxX;
-  const hitY = isWall(cx2, cy2, true) || nextY <= bounds.minY || nextY >= bounds.maxY;
-
-  if (hitX) this.velocity.x *= -1;
-  else this.normalMesh.position.x = nextX;
-
-  if (hitY) this.velocity.y *= -1;
-  else this.normalMesh.position.y = nextY;
-
-  // Prevent drifting back into pen
-  const { col, row } = worldToGrid(this.normalMesh.position.x, this.normalMesh.position.y);
-  if (this.isPenCell(col, row)) {
-    this.normalMesh.position.y -= 0.1; // nudge upward out of pen
-  }
+        // Bob up and down while waiting in pen
+        if (this.velocity.y === 0) this.velocity.y = 0.08;
+        const nextY = y + this.velocity.y;
+        const { col: nx, row: ny } = worldToGrid(x, nextY);
+        if (isWall(nx, ny, true)) {
+          this.velocity.y *= -1;
+        } else {
+          this.normalMesh.position.y = nextY;
+        }
       }
     } else {
       // Scatter: follow waypoint loop one axis at a time through open corridors
@@ -257,7 +249,9 @@ export class Ghost {
         const dx = wpWorld.x - x;
         const dy = wpWorld.y - y;
         const speed = 0.04;
-        if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+        if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+          this.normalMesh.position.x = wpWorld.x;
+          this.normalMesh.position.y = wpWorld.y;
           this.scatterWaypointIndex = (this.scatterWaypointIndex + 1) % this.scatterLoop.length;
           this.velocity.x = 0;
           this.velocity.y = 0;
